@@ -1,112 +1,14 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <title>LED Controller</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <link rel="manifest" href="manifest.json">
-  <meta name="theme-color" content="#111111">
-
-  <style>
-    body {
-      font-family: system-ui, sans-serif;
-      background: #111;
-      color: #fff;
-      text-align: center;
-      margin: 0;
-      padding: 20px;
-    }
-    button, input {
-      font-size: 1.1em;
-      margin: 8px;
-      padding: 10px 18px;
-    }
-    .group {
-      margin: 20px 0;
-    }
-  </style>
-</head>
-
-<body>
-  <h1>LED Controller</h1>
-
-  <button id="connectBtn">🔗 Connect</button>
-  <p id="status">Disconnected</p>
-
-  <div class="group">
-    <button onclick="sendCmd('OFF')">OFF</button>
-  </div>
-
-  <div class="group">
-    <input type="color" id="colorPicker" value="#ff0000">
-    <button onclick="sendColor()">Set Color</button>
-  </div>
-
-  <div class="group">
-    Brightness<br>
-    <input type="range" min="0" max="255" value="128"
-      oninput="sendCmd('BRIGHT:' + this.value)">
-  </div>
-
-  <div class="group">
-    Speed<br>
-    <input type="range" min="1" max="100" value="50"
-      oninput="sendCmd('SPEED:' + this.value)">
-  </div>
-
-  <div class="group">
-    <button onclick="sendCmd('MODE:RAINBOW')">Rainbow</button>
-    <button onclick="sendCmd('MODE:CHASE')">Chase</button>
-    <button onclick="sendCmd('MODE:AUDIO')">Audio</button>
-  </div>
+<button onclick="testBLE()">Test BLE</button>
 
 <script>
-let characteristic = null;
-
-const SERVICE_UUID = '12345678-1234-5678-1234-56789abcdef0';
-const CHAR_UUID    = 'abcdef01-1234-5678-1234-56789abcdef0';
-
-async function connectBLE() {
+async function testBLE() {
   try {
     const device = await navigator.bluetooth.requestDevice({
-      filters: [{ name: 'LED_Controller' }],
-      optionalServices: [SERVICE_UUID]
+      acceptAllDevices: true
     });
-
-    const server = await device.gatt.connect();
-    const service = await server.getPrimaryService(SERVICE_UUID);
-    characteristic = await service.getCharacteristic(CHAR_UUID);
-
-  document.getElementById('status').textContent = 'Connected';
-  } catch (err) {
-    alert('BLE connection failed');
-    console.error(err);
+    alert("Picker worked!");
+  } catch (e) {
+    alert("BLE failed: " + e);
   }
-}
-
-async function sendCmd(cmd) {
-  if (!characteristic) {
-    alert('Not connected');
-    return;
-  }
-  const encoder = new TextEncoder();
-  await characteristic.writeValue(encoder.encode(cmd));
-}
-
-function sendColor() {
-  const hex = document.getElementById('colorPicker').value;
-  const r = parseInt(hex.substr(1,2),16);
-  const g = parseInt(hex.substr(3,2),16);
-  const b = parseInt(hex.substr(5,2),16);
-  sendCmd(`RGB:${r},${g},${b}`);
-}
-
-document.getElementById('connectBtn').onclick = connectBLE;
-
-// Register service worker
-if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.register('sw.js');
 }
 </script>
-</body>
-</html>
