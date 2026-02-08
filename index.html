@@ -91,4 +91,165 @@
   <!-- POWER -->
   <div class="card">
     <button onclick="sendCommand('ON')" class="ctl">ON</button>
-    <button onclick="sendCommand('OFF')" class="secondary ctl">OFF</butt
+    <button onclick="sendCommand('OFF')" class="secondary ctl">OFF</button>
+  </div>
+
+  <!-- MODES -->
+  <div class="card">
+    <button onclick="setMode('SOLID')" class="ctl">Solid</button>
+    <button onclick="setMode('RAINBOW')" class="ctl">Rainbow</button>
+    <button onclick="setMode('CHASE')" class="ctl">Chase</button>
+    <button onclick="setMode('BREATH')" class="ctl">Breath</button>
+    <button onclick="setMode('AUDIO')" class="ctl">Audio</button>
+  </div>
+
+  <!-- COLOR PRESETS -->
+  <div class="card">
+    <div class="label">Color Presets</div>
+    <div class="preset-row">
+      <button onclick="setColorPreset('RED')">Red</button>
+      <button onclick="setColorPreset('ORANGE')">Orange</button>
+      <button onclick="setColorPreset('YELLOW')">Yellow</button>
+      <button onclick="setColorPreset('GREEN')">Green</button>
+      <button onclick="setColorPreset('BLUE')">Blue</button>
+      <button onclick="setColorPreset('PURPLE')">Purple</button>
+    </div>
+  </div>
+
+  <!-- CUSTOM COLOR -->
+  <div class="card">
+    <div class="label">Custom Color</div>
+    <input type="color" class="ctl" onchange="sendRGB(this.value)">
+  </div>
+
+  <!-- BRIGHTNESS -->
+  <div class="card">
+    <div class="label">
+      Brightness: <span id="brightnessLabel">50%</span>
+    </div>
+
+    <input
+      id="brightnessSlider"
+      type="range"
+      min="0"
+      max="100"
+      value="50"
+      onchange="updateBrightness(this.value)"
+      class="ctl"
+    >
+
+    <div class="preset-row">
+      <button onclick="setBrightnessPreset(20)">20%</button>
+      <button onclick="setBrightnessPreset(40)">40%</button>
+      <button onclick="setBrightnessPreset(60)">60%</button>
+      <button onclick="setBrightnessPreset(80)">80%</button>
+      <button onclick="setBrightnessPreset(100)">100%</button>
+    </div>
+  </div>
+
+  <!-- SPEED -->
+  <div class="card">
+    <div class="label">
+      Speed: <span id="speedLabel">1×</span>
+    </div>
+
+    <input
+      id="speedSlider"
+      type="range"
+      min="0.25"
+      max="4"
+      step="0.05"
+      value="1"
+      onchange="updateSpeed(this.value)"
+      class="ctl"
+    >
+
+    <div class="preset-row">
+      <button onclick="setSpeedPreset(0.25)">0.25×</button>
+      <button onclick="setSpeedPreset(0.5)">0.5×</button>
+      <button onclick="setSpeedPreset(0.75)">0.75×</button>
+      <button onclick="setSpeedPreset(1)">1×</button>
+      <button onclick="setSpeedPreset(1.5)">1.5×</button>
+      <button onclick="setSpeedPreset(2)">2×</button>
+      <button onclick="setSpeedPreset(4)">4×</button>
+    </div>
+  </div>
+
+</div>
+
+<script>
+  let device, server, service, commandChar;
+  const SERVICE_UUID = '12345678-1234-5678-1234-56789abcdef0';
+  const CHAR_UUID    = 'abcdef01-1234-5678-1234-56789abcdef0';
+
+  function setControls(enabled) {
+    document.querySelectorAll(".ctl").forEach(e => e.disabled = !enabled);
+  }
+  setControls(false);
+
+  async function connectBLE() {
+    try {
+      device = await navigator.bluetooth.requestDevice({
+        acceptAllDevices: true,
+        optionalServices: [SERVICE_UUID]
+      });
+
+      document.getElementById("deviceName").innerText = device.name || "Unknown";
+
+      server = await device.gatt.connect();
+      service = await server.getPrimaryService(SERVICE_UUID);
+      commandChar = await service.getCharacteristic(CHAR_UUID);
+
+      document.getElementById("status").innerText = "Connected";
+      setControls(true);
+    } catch (e) {
+      alert("BLE failed: " + e);
+    }
+  }
+
+  function sendCommand(cmd) {
+    if (!commandChar) return;
+    commandChar.writeValue(new TextEncoder().encode(cmd));
+  }
+
+  function setMode(mode) {
+    sendCommand(`MODE:${mode}`);
+  }
+
+  function updateBrightness(p) {
+    document.getElementById("brightnessLabel").innerText = p + "%";
+    const v = Math.round(p * 2.55);
+    sendCommand(`BRIGHT:${v}`);
+  }
+
+  function setBrightnessPreset(p) {
+    brightnessSlider.value = p;
+    updateBrightness(p);
+  }
+
+  function updateSpeed(v) {
+    v = parseFloat(v);
+    document.getElementById("speedLabel").innerText = v + "×";
+    sendCommand(`SPEED:${v}`);
+  }
+
+  function setSpeedPreset(v) {
+    speedSlider.value = v;
+    updateSpeed(v);
+  }
+
+  function setColorPreset(name) {
+    sendCommand(`COLOR:${name}`);
+    setMode("SOLID");
+  }
+
+  function sendRGB(hex) {
+    const r = parseInt(hex.substr(1,2),16);
+    const g = parseInt(hex.substr(3,2),16);
+    const b = parseInt(hex.substr(5,2),16);
+    sendCommand(`RGB:${r},${g},${b}`);
+    setMode("SOLID");
+  }
+</script>
+</body>
+</html>
